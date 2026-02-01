@@ -89,14 +89,24 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
         const text = (await link.textContent()) || '';
         const combined = (href + ' ' + text).toLowerCase();
 
+        // Exclude category pages (short URLs like /raquetes, /tenis, /bolsas, etc.)
+        // Product URLs are longer slugs (e.g., /raquete-de-tenis-wilson-ultra-100-v5-...)
+        const urlPath = href.replace('https://www.prospin.com.br', '').split('?')[0];
+        const pathParts = urlPath.split('/').filter(p => p);
+        const isShortCategoryUrl = pathParts.length === 1 && pathParts[0].length < 20;
+
+        if (isShortCategoryUrl) {
+          console.log(`[ProSpin] Skipping category page: ${href}`);
+          continue;
+        }
+
         let score = 0;
         for (const keyword of keywords) {
           if (combined.includes(keyword)) score++;
         }
 
         if (score > 0) {
-          scoredLinks.push({ link, score, href, text });
-        }
+          scoredLinks.push({ link, score, href, text });        }
       }
 
       scoredLinks.sort((a, b) => b.score - a.score);
