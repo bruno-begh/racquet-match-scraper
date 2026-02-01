@@ -45,16 +45,17 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
     const allLinks = await page.locator('a[href]').all();
     console.log(`[ProSpin] Found ${allLinks.length} total links on page`);
 
-    // Try multiple selectors progressively
+    // Try multiple selectors progressively - prioritize racquet links
     const selectors = [
+      'a[href*="/raquete-de-tenis/"]',
+      'a[href*="raquete"]',
       'a[href*="/produto/"]',
       'a[href*="/product/"]',
-      'a[href*="wilson"]',
-      'a[href*="raquete"]',
       '.product-item a',
       '.item-product a',
       '.product a',
       'a.product-link',
+      'a[href*="wilson"]',
       'a'
     ];
 
