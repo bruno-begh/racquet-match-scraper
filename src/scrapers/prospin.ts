@@ -48,15 +48,52 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
     // Wait for search results
     await page.waitForLoadState('networkidle', { timeout: 15000 });
 
+    // Debug: log current URL
+    const currentUrl = page.url();
+    console.log(`[ProSpin] Current URL after search: ${currentUrl}`);
+
     // Try to find product link in results
     console.log('[ProSpin] Extracting product information...');
 
-    // Look for product cards/links
-    const productLinkSelector = 'a[href*="/produto/"], a[href*="/product/"], .product-item a, .item-product a';
-    const productLinks = await page.locator(productLinkSelector).all();
+    // Debug: Try to find ALL links first
+    const allLinks = await page.locator('a[href]').all();
+    console.log(`[ProSpin] Found ${allLinks.length} total links on page`);
+
+    // Try multiple selectors progressively
+    const selectors = [
+      'a[href*="/produto/"]',
+      'a[href*="/product/"]',
+      'a[href*="wilson"]',
+      'a[href*="raquete"]',
+      '.product-item a',
+      '.item-product a',
+      '.product a',
+      'a.product-link',
+      'a'
+    ];
+
+    let productLinks: any[] = [];
+    for (const selector of selectors) {
+      productLinks = await page.locator(selector).all();
+      if (productLinks.length > 0) {
+        console.log(`[ProSpin] Found ${productLinks.length} links with selector: ${selector}`);
+
+        // Log first 5 hrefs for debugging
+        for (let i = 0; i < Math.min(5, productLinks.length); i++) {
+          const href = await productLinks[i].getAttribute('href');
+          console.log(`[ProSpin]   Link ${i}: ${href}`);
+        }
+        break;
+      }
+    }
 
     if (productLinks.length === 0) {
-      console.log('[ProSpin] No products found in search results');
+      console.log('[ProSpin] No products found in search results with any selector');
+
+      // Debug: log page title and HTML snippet
+      const title = await page.title();
+      console.log(`[ProSpin] Page title: ${title}`);
+
       await browser.close();
       return {
         found: false,
