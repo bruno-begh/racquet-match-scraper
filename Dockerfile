@@ -18,12 +18,13 @@ RUN npx playwright install chromium
 # Copy TypeScript config and source code
 COPY tsconfig.json ./
 COPY src ./src
+COPY data ./data
 
 # Build TypeScript
 RUN npm run build
 
-# Remove source files to reduce image size (keep only compiled JS)
-RUN rm -rf src tsconfig.json
+# Keep src for runtime imports (populate-grid needs it)
+# RUN rm -rf tsconfig.json
 
 # Expose port (Railway will assign this dynamically)
 EXPOSE 3001
