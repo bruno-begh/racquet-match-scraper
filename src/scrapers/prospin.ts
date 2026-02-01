@@ -29,62 +29,10 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
 
     page = await browser.newPage();
 
-    // Navigate to ProSpin homepage
-    console.log('[ProSpin] Navigating to homepage...');
-    await page.goto('https://www.prospin.com.br/', { waitUntil: 'networkidle', timeout: 30000 });
-
-    // Find and fill search field
-    console.log('[ProSpin] Locating search field...');
-    const searchSelector = 'input[type="search"], input[name="q"], input[placeholder*="Buscar"], input[placeholder*="buscar"]';
-    await page.waitForSelector(searchSelector, { timeout: 10000 });
-
-    console.log(`[ProSpin] Typing: ${racquetName}`);
-    await page.fill(searchSelector, racquetName);
-
-    // Submit search - try clicking search button or Enter
-    console.log('[ProSpin] Submitting search...');
-
-    // Try to find and click search button
-    const searchButtonSelectors = [
-      'button[type="submit"]',
-      'button:has-text("Buscar")',
-      'button:has-text("Pesquisar")',
-      '.search-button',
-      'button.btn-search'
-    ];
-
-    let buttonClicked = false;
-    for (const btnSelector of searchButtonSelectors) {
-      try {
-        const button = page.locator(btnSelector).first();
-        if (await button.count() > 0) {
-          await button.click();
-          buttonClicked = true;
-          console.log(`[ProSpin] Clicked search button: ${btnSelector}`);
-          break;
-        }
-      } catch (e) {
-        // Try next selector
-      }
-    }
-
-    if (!buttonClicked) {
-      await page.press(searchSelector, 'Enter');
-      console.log('[ProSpin] Pressed Enter on search field');
-    }
-
-    // Wait for navigation or search results
-    try {
-      await page.waitForURL(url => {
-        const urlStr = url.toString();
-        return urlStr.includes('busca') || urlStr.includes('search') || urlStr !== 'https://www.prospin.com.br/';
-      }, { timeout: 5000 });
-      console.log('[ProSpin] Navigation detected');
-    } catch (e) {
-      console.log('[ProSpin] No navigation detected, continuing...');
-    }
-
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    // Navigate directly to search results page with query
+    const searchUrl = `https://www.prospin.com.br/buscar?q=${encodeURIComponent(racquetName)}`;
+    console.log(`[ProSpin] Navigating to search URL: ${searchUrl}`);
+    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 30000 });
 
     // Debug: log current URL
     const currentUrl = page.url();
