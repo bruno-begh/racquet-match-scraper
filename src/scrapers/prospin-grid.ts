@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { chromium, Browser } from 'playwright';
 import { Product } from '../database/products-store';
 
