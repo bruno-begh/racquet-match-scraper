@@ -1,4 +1,5 @@
 # Use official Node.js image with Playwright support
+# Updated: Force Railway redeploy with category filter fix
 FROM mcr.microsoft.com/playwright:v1.40.1-jammy
 
 # Set working directory
@@ -7,8 +8,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including devDependencies for build)
-RUN npm install
+# Install dependencies
+RUN npm install --production
+RUN npm install typescript
 
 # Install Playwright browsers
 RUN npx playwright install chromium
@@ -20,8 +22,7 @@ COPY src ./src
 # Build TypeScript
 RUN npm run build
 
-# Remove devDependencies and source files after build
-RUN npm prune --production
+# Remove source files to reduce image size (keep only compiled JS)
 RUN rm -rf src tsconfig.json
 
 # Expose port (Railway will assign this dynamically)
