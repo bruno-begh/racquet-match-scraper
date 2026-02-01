@@ -35,7 +35,7 @@ async function testHealthCheck() {
   console.log('\n🏥 Testing health check...');
   try {
     const response = await fetch(`${API_URL}/health`);
-    const data = await response.json();
+    const data = await response.json() as { status: string; service: string; timestamp: string };
     console.log('✅ Health check passed:', data);
     return true;
   } catch (error) {
@@ -53,7 +53,7 @@ async function testProSpin(racquetName: string) {
       body: JSON.stringify({ racquetName })
     });
 
-    const data: StoreResponse = await response.json();
+    const data = await response.json() as StoreResponse;
 
     if (data.result.found) {
       console.log('✅ Found on ProSpin!');
@@ -82,7 +82,7 @@ async function testCasaDoTenista(racquetName: string) {
       body: JSON.stringify({ racquetName })
     });
 
-    const data: StoreResponse = await response.json();
+    const data = await response.json() as StoreResponse;
 
     if (data.result.found) {
       console.log('✅ Found on Casa do Tenista!');
@@ -111,7 +111,7 @@ async function testBothStores(racquetName: string) {
       body: JSON.stringify({ racquetName })
     });
 
-    const data: BothStoresResponse = await response.json();
+    const data = await response.json() as BothStoresResponse;
 
     console.log(`\n📊 Results:`);
     console.log(`   Found in ${data.foundIn.length} store(s): ${data.foundIn.join(', ') || 'None'}`);
@@ -139,6 +139,18 @@ async function testBothStores(racquetName: string) {
   }
 }
 
+interface BatchResult {
+  racquet: string;
+  prospin: ScraperResult;
+  casadotenista: ScraperResult;
+}
+
+interface BatchResponse {
+  totalSearched: number;
+  results: BatchResult[];
+  timestamp: string;
+}
+
 async function testBatch(racquets: string[]) {
   console.log(`\n🔍 Testing batch search for ${racquets.length} racquets...`);
   try {
@@ -148,10 +160,10 @@ async function testBatch(racquets: string[]) {
       body: JSON.stringify({ racquets })
     });
 
-    const data = await response.json();
+    const data = await response.json() as BatchResponse;
 
     console.log(`\n📊 Batch Results:`);
-    data.results.forEach((result: any, index: number) => {
+    data.results.forEach((result, index) => {
       const found = [result.prospin.found, result.casadotenista.found].filter(Boolean).length;
       console.log(`\n   ${index + 1}. ${result.racquet}`);
       console.log(`      Found in ${found} store(s)`);
