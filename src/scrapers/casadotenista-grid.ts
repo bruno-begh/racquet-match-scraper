@@ -37,7 +37,7 @@ export async function scrapeCasaDoTenistaGrid(): Promise<Omit<Product, 'id'>[]> 
     }
 
     // Scroll to ensure all products are loaded
-    // @ts-expect-error - window and document are available in browser context
+    // @ts-ignore - window and document are available in browser context
     await page.evaluate(async () => {
       for (let i = 0; i < 5; i++) {
         window.scrollTo(0, document.body.scrollHeight);
