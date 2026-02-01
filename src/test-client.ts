@@ -53,7 +53,7 @@ async function testProSpin(racquetName: string) {
       body: JSON.stringify({ racquetName })
     });
 
-    const data: StoreResponse = await response.json();
+    const data = await response.json() as StoreResponse;
 
     if (data.result.found) {
       console.log('✅ Found on ProSpin!');
@@ -82,7 +82,7 @@ async function testCasaDoTenista(racquetName: string) {
       body: JSON.stringify({ racquetName })
     });
 
-    const data: StoreResponse = await response.json();
+    const data = await response.json() as StoreResponse;
 
     if (data.result.found) {
       console.log('✅ Found on Casa do Tenista!');
@@ -111,7 +111,7 @@ async function testBothStores(racquetName: string) {
       body: JSON.stringify({ racquetName })
     });
 
-    const data: BothStoresResponse = await response.json();
+    const data = await response.json() as BothStoresResponse;
 
     console.log(`\n📊 Results:`);
     console.log(`   Found in ${data.foundIn.length} store(s): ${data.foundIn.join(', ') || 'None'}`);
@@ -148,7 +148,7 @@ async function testBatch(racquets: string[]) {
       body: JSON.stringify({ racquets })
     });
 
-    const data = await response.json();
+    const data = await response.json() as any;
 
     console.log(`\n📊 Batch Results:`);
     data.results.forEach((result: any, index: number) => {
