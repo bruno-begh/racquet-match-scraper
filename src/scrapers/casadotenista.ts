@@ -75,17 +75,52 @@ export async function searchCasaDoTenista(racquetName: string): Promise<ScraperR
     ];
 
     let productLinks: any[] = [];
+    let matchedSelector = '';
+
     for (const selector of selectors) {
       productLinks = await page.locator(selector).all();
       if (productLinks.length > 0) {
+        matchedSelector = selector;
         console.log(`[Casa do Tenista] Found ${productLinks.length} links with selector: ${selector}`);
 
         // Log first 5 hrefs for debugging
         for (let i = 0; i < Math.min(5, productLinks.length); i++) {
           const href = await productLinks[i].getAttribute('href');
-          console.log(`[Casa do Tenista]   Link ${i}: ${href}`);
+          const text = await productLinks[i].textContent();
+          console.log(`[Casa do Tenista]   Link ${i}: ${href} | Text: ${text?.substring(0, 50)}`);
         }
         break;
+      }
+    }
+
+    // Filter links to find best match for the search query
+    if (productLinks.length > 0 && matchedSelector !== 'a') {
+      const keywords = racquetName.toLowerCase().split(' ').filter(k => k.length > 2);
+      console.log(`[Casa do Tenista] Filtering with keywords: ${keywords.join(', ')}`);
+
+      const scoredLinks = [];
+      for (const link of productLinks.slice(0, 20)) {
+        const href = (await link.getAttribute('href')) || '';
+        const text = (await link.textContent()) || '';
+        const combined = (href + ' ' + text).toLowerCase();
+
+        let score = 0;
+        for (const keyword of keywords) {
+          if (combined.includes(keyword)) score++;
+        }
+
+        if (score > 0) {
+          scoredLinks.push({ link, score, href, text });
+        }
+      }
+
+      scoredLinks.sort((a, b) => b.score - a.score);
+
+      if (scoredLinks.length > 0) {
+        console.log(`[Casa do Tenista] Best match: ${scoredLinks[0].href} (score: ${scoredLinks[0].score})`);
+        productLinks = [scoredLinks[0].link];
+      } else {
+        console.log('[Casa do Tenista] No keyword matches found, using first result');
       }
     }
 

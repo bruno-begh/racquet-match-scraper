@@ -41,11 +41,46 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
     console.log(`[ProSpin] Typing: ${racquetName}`);
     await page.fill(searchSelector, racquetName);
 
-    // Submit search
+    // Submit search - try clicking search button or Enter
     console.log('[ProSpin] Submitting search...');
-    await page.press(searchSelector, 'Enter');
 
-    // Wait for search results
+    // Try to find and click search button
+    const searchButtonSelectors = [
+      'button[type="submit"]',
+      'button:has-text("Buscar")',
+      'button:has-text("Pesquisar")',
+      '.search-button',
+      'button.btn-search'
+    ];
+
+    let buttonClicked = false;
+    for (const btnSelector of searchButtonSelectors) {
+      try {
+        const button = page.locator(btnSelector).first();
+        if (await button.count() > 0) {
+          await button.click();
+          buttonClicked = true;
+          console.log(`[ProSpin] Clicked search button: ${btnSelector}`);
+          break;
+        }
+      } catch (e) {
+        // Try next selector
+      }
+    }
+
+    if (!buttonClicked) {
+      await page.press(searchSelector, 'Enter');
+      console.log('[ProSpin] Pressed Enter on search field');
+    }
+
+    // Wait for navigation or search results
+    try {
+      await page.waitForURL(url => url.includes('busca') || url.includes('search') || url !== 'https://www.prospin.com.br/', { timeout: 5000 });
+      console.log('[ProSpin] Navigation detected');
+    } catch (e) {
+      console.log('[ProSpin] No navigation detected, continuing...');
+    }
+
     await page.waitForLoadState('networkidle', { timeout: 15000 });
 
     // Debug: log current URL
@@ -73,17 +108,52 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
     ];
 
     let productLinks: any[] = [];
+    let matchedSelector = '';
+
     for (const selector of selectors) {
       productLinks = await page.locator(selector).all();
       if (productLinks.length > 0) {
+        matchedSelector = selector;
         console.log(`[ProSpin] Found ${productLinks.length} links with selector: ${selector}`);
 
         // Log first 5 hrefs for debugging
         for (let i = 0; i < Math.min(5, productLinks.length); i++) {
           const href = await productLinks[i].getAttribute('href');
-          console.log(`[ProSpin]   Link ${i}: ${href}`);
+          const text = await productLinks[i].textContent();
+          console.log(`[ProSpin]   Link ${i}: ${href} | Text: ${text?.substring(0, 50)}`);
         }
         break;
+      }
+    }
+
+    // Filter links to find best match for the search query
+    if (productLinks.length > 0 && matchedSelector !== 'a') {
+      const keywords = racquetName.toLowerCase().split(' ').filter(k => k.length > 2);
+      console.log(`[ProSpin] Filtering with keywords: ${keywords.join(', ')}`);
+
+      const scoredLinks = [];
+      for (const link of productLinks.slice(0, 20)) {
+        const href = (await link.getAttribute('href')) || '';
+        const text = (await link.textContent()) || '';
+        const combined = (href + ' ' + text).toLowerCase();
+
+        let score = 0;
+        for (const keyword of keywords) {
+          if (combined.includes(keyword)) score++;
+        }
+
+        if (score > 0) {
+          scoredLinks.push({ link, score, href, text });
+        }
+      }
+
+      scoredLinks.sort((a, b) => b.score - a.score);
+
+      if (scoredLinks.length > 0) {
+        console.log(`[ProSpin] Best match: ${scoredLinks[0].href} (score: ${scoredLinks[0].score})`);
+        productLinks = [scoredLinks[0].link];
+      } else {
+        console.log('[ProSpin] No keyword matches found, using first result');
       }
     }
 
