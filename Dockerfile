@@ -7,9 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
-RUN npm install typescript
+# Install ALL dependencies (including devDependencies for build)
+RUN npm install
 
 # Install Playwright browsers
 RUN npx playwright install chromium
@@ -21,7 +20,8 @@ COPY src ./src
 # Build TypeScript
 RUN npm run build
 
-# Remove source files to reduce image size (keep only compiled JS)
+# Remove devDependencies and source files after build
+RUN npm prune --production
 RUN rm -rf src tsconfig.json
 
 # Expose port (Railway will assign this dynamically)
