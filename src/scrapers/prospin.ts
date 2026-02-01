@@ -75,7 +75,10 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
 
     // Wait for navigation or search results
     try {
-      await page.waitForURL(url => url.includes('busca') || url.includes('search') || url !== 'https://www.prospin.com.br/', { timeout: 5000 });
+      await page.waitForURL(url => {
+        const urlStr = url.toString();
+        return urlStr.includes('busca') || urlStr.includes('search') || urlStr !== 'https://www.prospin.com.br/';
+      }, { timeout: 5000 });
       console.log('[ProSpin] Navigation detected');
     } catch (e) {
       console.log('[ProSpin] No navigation detected, continuing...');
