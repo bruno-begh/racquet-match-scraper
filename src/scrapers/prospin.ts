@@ -85,10 +85,12 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
       for (const link of productLinks.slice(0, 20)) {
         const href = (await link.getAttribute('href')) || '';
         const urlPath = href.replace('https://www.prospin.com.br', '').split('?')[0];
-        const pathParts = urlPath.split('/').filter(p => p);
-        const isShortCategoryUrl = pathParts.length === 1 && pathParts[0].length < 20;
+        const pathParts = urlPath.split('/').filter((p) => p);
 
-        if (isShortCategoryUrl) {
+        // Category detection: URLs with few short parts or without product codes
+        const isCategoryUrl = pathParts.length <= 2 || !urlPath.match(/[a-z]{3}\d{9,}/);
+
+        if (isCategoryUrl) {
           console.log(`[ProSpin] Skipping category page: ${href}`);
         } else {
           filteredLinks.push(link);
