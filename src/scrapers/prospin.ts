@@ -85,6 +85,7 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
       for (const link of productLinks.slice(0, 20)) {
         const href = (await link.getAttribute('href')) || '';
         const urlPath = href.replace('https://www.prospin.com.br', '').split('?')[0];
+        // @ts-ignore - TypeScript infers the type correctly
         const pathParts = urlPath.split('/').filter((p) => p);
 
         // Category detection: URLs with few short parts or without product codes
