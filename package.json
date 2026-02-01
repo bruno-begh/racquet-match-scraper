@@ -1,6 +1,6 @@
 {
   "name": "racquet-match-scraper-service",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Microserviço de web scraping para buscar raquetes nas lojas",
   "main": "dist/index.js",
   "scripts": {
