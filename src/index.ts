@@ -3,11 +3,16 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { searchProSpin } from './scrapers/prospin';
 import { searchCasaDoTenista } from './scrapers/casadotenista';
+import { ProductsStore } from './database/products-store';
+import { populateGrid } from './scripts/populate-grid';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Initialize products store
+const productsStore = new ProductsStore();
 
 // Middleware
 app.use(cors());
@@ -19,6 +24,56 @@ app.get('/health', (req: Request, res: Response) => {
     status: 'ok',
     service: 'racquet-match-scraper',
     version: '1.1.0-category-fix',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Search in local database (fast, recommended)
+app.post('/search', async (req: Request, res: Response) => {
+  try {
+    const { racquetName, store } = req.body;
+
+    if (!racquetName) {
+      return res.status(400).json({
+        error: 'racquetName is required',
+        example: { racquetName: 'Wilson Ultra 100 V5' }
+      });
+    }
+
+    console.log(`[Local Search] Searching for: ${racquetName}`);
+    const results = productsStore.searchProducts(racquetName, store);
+
+    const response = {
+      query: racquetName,
+      totalFound: results.length,
+      products: results.map(p => ({
+        store: p.store,
+        name: p.name,
+        url: p.url,
+        price: p.price,
+        available: p.available
+      })),
+      timestamp: new Date().toISOString()
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('[Local Search] Error:', error);
+    res.status(500).json({
+      error: 'Failed to search products',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get database stats
+app.get('/stats', (req: Request, res: Response) => {
+  res.json({
+    totalProducts: productsStore.getProductCount(),
+    byStore: {
+      prospin: productsStore.getProductCount('ProSpin'),
+      casadotenista: productsStore.getProductCount('Casa do Tenista')
+    },
     timestamp: new Date().toISOString()
   });
 });
@@ -181,10 +236,40 @@ app.post('/scrape/batch', async (req: Request, res: Response) => {
   }
 });
 
+// Populate database with all products
+app.post('/populate', async (_req: Request, res: Response) => {
+  try {
+    console.log('[Populate] Starting full database population...');
+
+    // Return immediately with accepted status
+    res.status(202).json({
+      status: 'accepted',
+      message: 'Database population started in background',
+      timestamp: new Date().toISOString()
+    });
+
+    // Run population in background
+    populateGrid().then(() => {
+      console.log('[Populate] Database population completed successfully');
+    }).catch((error) => {
+      console.error('[Populate] Database population failed:', error);
+    });
+  } catch (error) {
+    console.error('[Populate] Error:', error);
+    res.status(500).json({
+      error: 'Failed to start database population',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🎾 Racquet Match Scraper Service`);
   console.log(`📍 Running on port ${PORT}`);
   console.log(`🔍 Endpoints:`);
+  console.log(`   - POST /search (local database)`);
+  console.log(`   - GET  /stats (database stats)`);
+  console.log(`   - POST /populate (update database)`);
   console.log(`   - POST /scrape/prospin`);
   console.log(`   - POST /scrape/casadotenista`);
   console.log(`   - POST /scrape/both`);
