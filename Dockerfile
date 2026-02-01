@@ -18,7 +18,6 @@ RUN npx playwright install chromium
 # Copy TypeScript config and source code
 COPY tsconfig.json ./
 COPY src ./src
-COPY data ./data
 
 # Build TypeScript
 RUN npm run build
