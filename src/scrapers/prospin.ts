@@ -80,42 +80,54 @@ export async function searchProSpin(racquetName: string): Promise<ScraperResult>
 
     // Filter links to find best match for the search query
     if (productLinks.length > 0 && matchedSelector !== 'a') {
-      const keywords = racquetName.toLowerCase().split(' ').filter(k => k.length > 2);
-      console.log(`[ProSpin] Filtering with keywords: ${keywords.join(', ')}`);
-
-      const scoredLinks = [];
+      // FIRST: Filter out category pages BEFORE scoring
+      const filteredLinks = [];
       for (const link of productLinks.slice(0, 20)) {
         const href = (await link.getAttribute('href')) || '';
-        const text = (await link.textContent()) || '';
-        const combined = (href + ' ' + text).toLowerCase();
-
-        // Exclude category pages (short URLs like /raquetes, /tenis, /bolsas, etc.)
-        // Product URLs are longer slugs (e.g., /raquete-de-tenis-wilson-ultra-100-v5-...)
         const urlPath = href.replace('https://www.prospin.com.br', '').split('?')[0];
         const pathParts = urlPath.split('/').filter(p => p);
         const isShortCategoryUrl = pathParts.length === 1 && pathParts[0].length < 20;
 
         if (isShortCategoryUrl) {
           console.log(`[ProSpin] Skipping category page: ${href}`);
-          continue;
+        } else {
+          filteredLinks.push(link);
         }
-
-        let score = 0;
-        for (const keyword of keywords) {
-          if (combined.includes(keyword)) score++;
-        }
-
-        if (score > 0) {
-          scoredLinks.push({ link, score, href, text });        }
       }
 
-      scoredLinks.sort((a, b) => b.score - a.score);
-
-      if (scoredLinks.length > 0) {
-        console.log(`[ProSpin] Best match: ${scoredLinks[0].href} (score: ${scoredLinks[0].score})`);
-        productLinks = [scoredLinks[0].link];
+      if (filteredLinks.length === 0) {
+        console.log('[ProSpin] All links were category pages, no products found');
+        productLinks = [];
       } else {
-        console.log('[ProSpin] No keyword matches found, using first result');
+        // SECOND: Score the filtered links
+        const keywords = racquetName.toLowerCase().split(' ').filter(k => k.length > 2);
+        console.log(`[ProSpin] Filtering with keywords: ${keywords.join(', ')}`);
+
+        const scoredLinks = [];
+        for (const link of filteredLinks) {
+          const href = (await link.getAttribute('href')) || '';
+          const text = (await link.textContent()) || '';
+          const combined = (href + ' ' + text).toLowerCase();
+
+          let score = 0;
+          for (const keyword of keywords) {
+            if (combined.includes(keyword)) score++;
+          }
+
+          if (score > 0) {
+            scoredLinks.push({ link, score, href, text });
+          }
+        }
+
+        scoredLinks.sort((a, b) => b.score - a.score);
+
+        if (scoredLinks.length > 0) {
+          console.log(`[ProSpin] Best match: ${scoredLinks[0].href} (score: ${scoredLinks[0].score})`);
+          productLinks = [scoredLinks[0].link];
+        } else {
+          console.log('[ProSpin] No keyword matches in filtered links, using first filtered result');
+          productLinks = [filteredLinks[0]];
+        }
       }
     }
 
