@@ -20,6 +20,7 @@ export async function scrapeProsSpinGrid(): Promise<Omit<Product, 'id'>[]> {
       await page.waitForTimeout(4000);
 
       // Scroll to load all products on this page
+      // @ts-expect-error - window and document are available in browser context
       await page.evaluate(async () => {
         for (let i = 0; i < 3; i++) {
           window.scrollTo(0, document.body.scrollHeight);
