@@ -18,6 +18,7 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'racquet-match-scraper',
+    version: '1.1.0-category-fix',
     timestamp: new Date().toISOString()
   });
 });
